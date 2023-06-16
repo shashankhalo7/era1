@@ -59,18 +59,19 @@ Shashank Pathak
 
 
 
-### Code4.ipynb
+### Code5.ipynb
 
 **Target**:
 
-1. Add transforms and increase capacity further
+1. Add transforms and increase capacity further, Add StepLR Scheduler
 
 **Results**:
 
-* Parameters: 9,880
-* Best Train Accuracy: 98.33
-* Best Test Accuracy: 99.43
+* Parameters: 7,928
+* Best Train Accuracy: 98.81
+* Best Test Accuracy: 99.44
 
 **Analysis**:
 
-* The can be trained for more epochs, has potential 
+* The can be trained for more epochs, has potential
+* Can add OCP for training
