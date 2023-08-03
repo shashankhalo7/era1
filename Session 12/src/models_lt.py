@@ -103,7 +103,7 @@ class CustomResnet(pl.LightningModule):
         x = x.view(-1, 10)
         return x
     
-    def configure_optimizer(self):
+    def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=8e-04,weight_decay = 1e-4)
         scheduler = OneCycleLR(optimizer, max_lr=8e-02, steps_per_epoch=len(train_loader), epochs=20,div_factor=100,pct_start = 5/20)
         return [optimizer],[scheduler]
