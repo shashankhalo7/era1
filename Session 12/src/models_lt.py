@@ -105,7 +105,7 @@ class CustomResnet(pl.LightningModule):
     
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=8e-04,weight_decay = 1e-4)
-        scheduler = OneCycleLR(optimizer, max_lr=8e-02, steps_per_epoch=len(train_loader), epochs=20,div_factor=100,pct_start = 5/20)
+        scheduler = OneCycleLR(optimizer, max_lr=8e-02, steps_per_epoch=98, epochs=20,div_factor=100,pct_start = 5/20)
         return [optimizer],[scheduler]
     
     def training_step(self, batch, batch_idx):
@@ -118,12 +118,12 @@ class CustomResnet(pl.LightningModule):
         processed = len(data)
         train_accuracy = 100*float(correct)/float(processed)
         self.log("train_accuracy", train_accuracy)
-        return loss
+        return train_loss
     
     def validation_step(self,batch,batch_idx):
         data, target = batch
         output = self(data)
-        test_loss += self.criterion(output, target).item()  # sum up batch loss
+        test_loss = self.criterion(output, target).item()  # sum up batch loss
         self.log("test_loss", test_loss)
         pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
         correct = pred.eq(target.view_as(pred)).sum().item()
