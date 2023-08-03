@@ -133,10 +133,14 @@ class CustomResnet(pl.LightningModule):
         return test_loss
     
     def predict_step(self, batch, batch_idx):
-        data = batch
+        data = batch[0]
         output = self(data)
-        pred = output.argmax(dim=1, keepdim=True)
-        return pred
+        #softmax = torch.nn.Softmax(dim=0)
+        #o = softmax(output)
+        #confidences = {i: float(o[i]) for i in range(10)}
+        #pred = output.argmax(dim=1, keepdim=True)
+        return output
+    
     
         
         
