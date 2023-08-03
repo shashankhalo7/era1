@@ -1,8 +1,9 @@
+from __future__ import print_function
+
 import lightning.pytorch as pl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from __future__ import print_function
 import torch.optim as optim
 from torchvision import datasets, transforms
 import albumentations as A
