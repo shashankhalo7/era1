@@ -112,24 +112,24 @@ class CustomResnet(pl.LightningModule):
         data, target = batch
         y_pred = self(data)
         train_loss = self.criterion(y_pred, target)
-        self.log("train_loss", train_loss)
+        self.log("train_loss", train_loss,prog_bar=True, on_step=False, on_epoch=True)
         pred = y_pred.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
         correct = pred.eq(target.view_as(pred)).sum().item()
         processed = len(data)
         train_accuracy = 100*float(correct)/float(processed)
-        self.log("train_accuracy", train_accuracy)
+        self.log("train_accuracy", train_accuracy,prog_bar=True, on_step=False, on_epoch=True)
         return train_loss
     
     def validation_step(self,batch,batch_idx):
         data, target = batch
         output = self(data)
         test_loss = self.criterion(output, target).item()  # sum up batch loss
-        self.log("test_loss", test_loss)
+        self.log("test_loss", test_loss,prog_bar=True, on_step=False, on_epoch=True)
         pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
         correct = pred.eq(target.view_as(pred)).sum().item()
         processed = len(data)
         test_accuracy = 100*float(correct)/float(processed)
-        self.log("test_accuracy", test_accuracy)
+        self.log("test_accuracy", test_accuracy,prog_bar=True, on_step=False, on_epoch=True)
         return test_loss
     
     def predict_step(self, batch, batch_idx):
