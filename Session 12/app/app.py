@@ -12,22 +12,22 @@ transform = transforms.Compose([
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
     ])
 
-model =  CustomResnet()
-model.load_state_dict(torch.load("cifar10_model.pth",map_location=torch.device('cpu')), strict=False)
-softmax = nn.Softmax(dim=1)
 
-class_names = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
 
 
 
 def inference(image,gradcam,num_gradcam,opacity,layer,misclassified,num_misclassified,topk):
+    model =  CustomResnet()
+    model.load_state_dict(torch.load("cifar10_model.pth",map_location=torch.device('cpu')), strict=False)
+    softmax = nn.Softmax(dim=1)
+    class_names = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
     input = transform(image)
     input = input.unsqueeze(0)
     output = model(input)
     probs = softmax(output).flatten()
     confidences = {class_names[i]: float(probs[i]) for i in range(10)}
     sorted_confidences = dict(sorted(confidences.items(), key=lambda item: item[1],reverse = True))
-    confidences = dict(itertools.islice(sorted_confidences.items(), topk))
+    confidence_score = dict(itertools.islice(sorted_confidences.items(), topk))
     pred = probs.argmax(dim=0, keepdim=True)
     pred = pred.item()
     target_layers = [model.res_block3[3*layer]]
@@ -37,7 +37,8 @@ def inference(image,gradcam,num_gradcam,opacity,layer,misclassified,num_misclass
     grayscale_cam = grayscale_cam[0, :]
     print(input.squeeze(0).shape)
     visualization = show_cam_on_image(imshow(image.squeeze(0)), grayscale_cam, use_rgb=True,image_weight=opacity)
-    return confidences,visualization
+    print(confidence_score)
+    return confidence_score,visualization
 
 with gr.Blocks() as demo:
   with gr.Row() as interface:
