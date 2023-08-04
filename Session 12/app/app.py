@@ -30,15 +30,15 @@ def inference(image,gradcam,num_gradcam,opacity,layer,misclassified,num_misclass
     confidence_score = dict(itertools.islice(sorted_confidences.items(), topk))
     pred = probs.argmax(dim=0, keepdim=True)
     pred = pred.item()
-    target_layers = [model.res_block3[3*layer]]
-    cam = GradCAM(model=model, target_layers=target_layers, use_cuda=False)
-    image = input.cpu().numpy()
-    grayscale_cam = cam(input_tensor=input, targets=[ClassifierOutputTarget(pred)],aug_smooth=True,eigen_smooth=True)
-    grayscale_cam = grayscale_cam[0, :]
-    print(input.squeeze(0).shape)
-    visualization = show_cam_on_image(imshow(image.squeeze(0)), grayscale_cam, use_rgb=True,image_weight=opacity)
-    print(confidence_score)
-    return confidence_score,visualization
+    if gradcam == 'Yes':
+      target_layers = [model.res_block3[3*layer]]
+      cam = GradCAM(model=model, target_layers=target_layers, use_cuda=False)
+      image = input.cpu().numpy()
+      grayscale_cam = cam(input_tensor=input, targets=[ClassifierOutputTarget(pred)],aug_smooth=True,eigen_smooth=True)
+      grayscale_cam = grayscale_cam[0, :]
+      visualization = show_cam_on_image(imshow(image.squeeze(0)), grayscale_cam, use_rgb=True,image_weight=opacity)
+      return confidence_score,visualization
+    return confidence_score,None
 
 with gr.Blocks() as demo:
   with gr.Row() as interface:
