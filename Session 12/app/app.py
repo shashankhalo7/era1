@@ -28,7 +28,16 @@ def inference(image,gradcam,num_gradcam,opacity,layer,misclassified,num_misclass
     confidences = {class_names[i]: float(probs[i]) for i in range(10)}
     sorted_confidences = dict(sorted(confidences.items(), key=lambda item: item[1],reverse = True))
     confidences = dict(itertools.islice(sorted_confidences.items(), topk))
-    return confidences,None
+    pred = probs.argmax(dim=0, keepdim=True)
+    pred = pred.item()
+    target_layers = [model.res_block3[3*layer]]
+    cam = GradCAM(model=model, target_layers=target_layers, use_cuda=False)
+    image = input.cpu().numpy()
+    grayscale_cam = cam(input_tensor=input, targets=[ClassifierOutputTarget(pred)],aug_smooth=True,eigen_smooth=True)
+    grayscale_cam = grayscale_cam[0, :]
+    print(input.squeeze(0).shape)
+    visualization = show_cam_on_image(imshow(image.squeeze(0)), grayscale_cam, use_rgb=True,image_weight=opacity)
+    return confidences,visualization
 
 with gr.Blocks() as demo:
   with gr.Row() as interface:
@@ -38,9 +47,9 @@ with gr.Blocks() as demo:
       gradcam = gr.Radio(label="Do you Need GradCam Output", choices=["Yes", "No"])
 
       with gr.Column(visible=False) as gradcam_details:
-          num_gradcam = gr.Slider(minimum = 0, maximum=20, value = 0, label="Number of Gradcam Images")
-          opacity = gr.Slider(minimum = 0, maximum=1, value = 0.5, label="Opacity of image overlayed by gradcam output")
-          layer = gr.Slider(minimum = -2, maximum=-1, value = -1, label="Which layer?")
+          num_gradcam = gr.Slider(minimum = 0, maximum=20, value = 0,step=1, label="Number of Gradcam Images")
+          opacity = gr.Slider(minimum = 0, maximum=1, value = 0.5,step=0.1, label="Opacity of image overlayed by gradcam output")
+          layer = gr.Slider(minimum = -2, maximum=-1, value = -1,step=1, label="Which layer?")
 
       def filter_gradcam(gradcam):
         if gradcam == 'Yes':
@@ -67,8 +76,8 @@ with gr.Blocks() as demo:
       btn = gr.Button("Classify")
 
     with gr.Column() as output_panel:
+      gradcam_output = gr.Image(shape=(32, 32), label="Output").style(height=240, width=240)
       output_labels = gr.Label(num_top_classes=10)
-      gradcam_output = gr.Image(shape=(32, 32), label="Output").style(width=128, height=128)
 
   
   btn.click(fn=inference, inputs=[image,gradcam,num_gradcam,opacity,layer,misclassified,num_misclassified,topk], outputs=[output_labels,gradcam_output])
