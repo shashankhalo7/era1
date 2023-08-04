@@ -13,9 +13,6 @@ transform = transforms.Compose([
     ])
 
 
-
-
-
 def inference(image,gradcam,num_gradcam,opacity,layer,misclassified,num_misclassified,topk):
     model =  CustomResnet()
     model.load_state_dict(torch.load("cifar10_model.pth",map_location=torch.device('cpu')), strict=False)
@@ -37,7 +34,8 @@ def inference(image,gradcam,num_gradcam,opacity,layer,misclassified,num_misclass
       grayscale_cam = cam(input_tensor=input, targets=[ClassifierOutputTarget(pred)],aug_smooth=True,eigen_smooth=True)
       grayscale_cam = grayscale_cam[0, :]
       visualization = show_cam_on_image(imshow(image.squeeze(0)), grayscale_cam, use_rgb=True,image_weight=opacity)
-      return confidence_score,visualization
+      print(imshow(image.squeeze(0)).shape)
+      return confidence_score,visualization,[imshow(image.squeeze(0))]*5,[imshow(image.squeeze(0))]*5
     return confidence_score,None
 
 with gr.Blocks() as demo:
@@ -79,9 +77,12 @@ with gr.Blocks() as demo:
     with gr.Column() as output_panel:
       gradcam_output = gr.Image(shape=(32, 32), label="Output").style(height=240, width=240)
       output_labels = gr.Label(num_top_classes=10)
+      misclassified_gallery = gr.Gallery(label="Misclassified Images")
+      gradcam_gallery = gr.Gallery(label="Some More GradCam Outputs")
+
 
   
-  btn.click(fn=inference, inputs=[image,gradcam,num_gradcam,opacity,layer,misclassified,num_misclassified,topk], outputs=[output_labels,gradcam_output])
+  btn.click(fn=inference, inputs=[image,gradcam,num_gradcam,opacity,layer,misclassified,num_misclassified,topk], outputs=[output_labels,gradcam_output,misclassified_gallery,gradcam_gallery])
 
 
 if __name__ == "__main__":
