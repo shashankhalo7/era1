@@ -1,9 +1,34 @@
 import lightning.pytorch as pl
 import torch.nn as nn
 import gradio as gr
+from torchvision import transforms
+import itertools
+from src.models_lt import *
+from src.utils import *
+
+
+transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+    ])
+
+model =  CustomResnet()
+model.load_state_dict(torch.load("cifar10_model.pth",map_location=torch.device('cpu')), strict=False)
+softmax = nn.Softmax(dim=1)
+
+class_names = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+
+
 
 def inference(image,gradcam,num_gradcam,opacity,layer,misclassified,num_misclassified,topk):
-  return None,None
+    input = transform(image)
+    input = input.unsqueeze(0)
+    output = model(input)
+    probs = softmax(output).flatten()
+    confidences = {class_names[i]: float(probs[i]) for i in range(10)}
+    sorted_confidences = dict(sorted(confidences.items(), key=lambda item: item[1],reverse = True))
+    confidences = dict(itertools.islice(sorted_confidences.items(), topk))
+    return confidences,None
 
 with gr.Blocks() as demo:
   with gr.Row() as interface:
@@ -38,11 +63,11 @@ with gr.Blocks() as demo:
         
       misclassified.change(filter_misclassified, misclassified, misclassified_details)
 
-      topk = gr.Slider(minimum = 1, maximum=10, value = 1, label="Number of Classes")
+      topk = gr.Slider(minimum = 1, maximum=10, value = 1, step=1, label="Number of Classes")
       btn = gr.Button("Classify")
 
     with gr.Column() as output_panel:
-      output_labels = gr.Label(num_top_classes=3) 
+      output_labels = gr.Label(num_top_classes=10)
       gradcam_output = gr.Image(shape=(32, 32), label="Output").style(width=128, height=128)
 
   
@@ -50,4 +75,4 @@ with gr.Blocks() as demo:
 
 
 if __name__ == "__main__":
-    demo.launch(share=True)
+    demo.launch(debug=True,share=True)
