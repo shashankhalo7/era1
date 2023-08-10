@@ -127,7 +127,7 @@ class ScalePrediction(nn.Module):
         
 
 class YOLOv3(pl.LightningModule):
-    def __init__(self, in_channels=3, num_classes=80,config,train_loader,test_loader):
+    def __init__(self,config,train_loader,test_loader, in_channels=3, num_classes=80):
         super().__init__()
         self.num_classes = num_classes
         self.in_channels = in_channels
@@ -229,7 +229,7 @@ class YOLOv3(pl.LightningModule):
         current_epoch = self.current_epoch
         if self.config.SAVE_MODEL:
             save_checkpoint(self, self.optimizers(), filename=f"checkpoint_{current_epoch}.pth.tar")
-        check_class_accuracy(self, self.train_loader, threshold=self.config.CONF_THRESHOLD,self.log)
+        check_class_accuracy(self, self.train_loader, threshold=self.config.CONF_THRESHOLD,logger=self.log)
         
     def validation_epoch_end(self):
         current_epoch = self.current_epoch
@@ -252,20 +252,3 @@ class YOLOv3(pl.LightningModule):
             print(mapval)
             self.log("MAP", mapval.item(),prog_bar=True, on_step=True, on_epoch=True)
     
-        
-        
-
-        
-        
-        
-        
-        
-    
-        
-        
-        
-        
-        
-        
-        
-        
