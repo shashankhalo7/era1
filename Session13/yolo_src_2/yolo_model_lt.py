@@ -126,7 +126,7 @@ class YOLOv3(pl.LightningModule):
         self.ANCHORS = [[(0.28, 0.22), (0.38, 0.48), (0.9, 0.78)],
         [(0.07, 0.15), (0.15, 0.11), (0.14, 0.29)],
         [(0.02, 0.03), (0.04, 0.07), (0.08, 0.06)],
-        ] 
+    ] 
         
         self.scaled_anchors = (torch.tensor(self.ANCHORS)* torch.tensor(self.config.S).unsqueeze(1).unsqueeze(1).repeat(1, 3, 2))
         self.mse = nn.MSELoss()
@@ -773,7 +773,7 @@ class YOLOv3(pl.LightningModule):
         y = x.clone() if isinstance(x, torch.Tensor) else np.copy(x)
         y[..., 0] = w * (x[..., 0] - x[..., 2] / 2) + padw  # top left x
         y[..., 1] = h * (x[..., 1] - x[..., 3] / 2) + padh  # top left y
-        y[..., 2] = w * (x[..., 0]  ef     + x[..., 2] / 2) + padw  # bottom right x
+        y[..., 2] = w * (x[..., 0] + x[..., 2] / 2) + padw  # bottom right x
         y[..., 3] = h * (x[..., 1] + x[..., 3] / 2) + padh  # bottom right y
         return y
 
