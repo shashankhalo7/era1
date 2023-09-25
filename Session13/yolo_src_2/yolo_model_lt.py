@@ -815,6 +815,9 @@ class YOLOv3(pl.LightningModule):
             
     
     def loss_fn(self, predictions, target, anchors):
+        
+        predictions = predictions.to(self.device)
+        target = target.to(self.device)
         # Check where obj and noobj (we ignore if target == -1)
         obj = target[..., 0] == 1  # in paper this is Iobj_i
         noobj = target[..., 0] == 0  # in paper this is Inoobj_i
