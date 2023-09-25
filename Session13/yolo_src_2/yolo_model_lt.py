@@ -122,6 +122,11 @@ class YOLOv3(pl.LightningModule):
         self.num_classes = num_classes
         self.in_channels = in_channels
         self.layers = self._create_conv_layers()
+
+        self.config = config
+
+        self.IMAGE_SIZE = 416
+        self.S = [self.IMAGE_SIZE // 32, self.IMAGE_SIZE // 16, self.IMAGE_SIZE // 8]
         
         self.ANCHORS = [[(0.28, 0.22), (0.38, 0.48), (0.9, 0.78)],
         [(0.07, 0.15), (0.15, 0.11), (0.14, 0.29)],
@@ -222,13 +227,13 @@ class YOLOv3(pl.LightningModule):
         self.log("train_loss", train_loss,prog_bar=True, on_step=True, on_epoch=True)
         
     def on_epoch_start(self):
-         self.plot_couple_examples(self, self.test_loader, 0.6, 0.5, self.scaled_anchors)
+         self.plot_couple_examples( self.test_loader, 0.6, 0.5, self.scaled_anchors)
         
     def on_train_epoch_end(self):
         current_epoch = self.current_epoch
         if self.config.SAVE_MODEL:
-            self.save_checkpoint(self, self.optimizers(), filename=f"checkpoint_{current_epoch}.pth.tar")
-        self.check_class_accuracy(self, self.train_loader, threshold=self.config.CONF_THRESHOLD,logger=self.log)
+            self.save_checkpoint(self.optimizers(), filename=f"checkpoint_{current_epoch}.pth.tar")
+        self.check_class_accuracy(self.train_loader, threshold=self.config.CONF_THRESHOLD,logger=self.log)
         
     def on_valid_epoch_end(self):
         current_epoch = self.current_epoch
@@ -251,7 +256,7 @@ class YOLOv3(pl.LightningModule):
             print(mapval)
             self.log("MAP", mapval.item(),prog_bar=True, on_step=True, on_epoch=True)
             
-    def iou_width_height(boxes1, boxes2):
+    def iou_width_height(self,boxes1, boxes2):
         """
         Parameters:
             boxes1 (tensor): width and height of the first bounding boxes
@@ -268,7 +273,7 @@ class YOLOv3(pl.LightningModule):
         return intersection / union
 
 
-    def intersection_over_union(boxes_preds, boxes_labels, box_format="midpoint"):
+    def intersection_over_union(self,boxes_preds, boxes_labels, box_format="midpoint"):
         """
         Video explanation of this function:
         https://youtu.be/XXYG5ZWtjj0
@@ -286,24 +291,24 @@ class YOLOv3(pl.LightningModule):
         """
 
         if box_format == "midpoint":
-            box1_x1 = boxes_preds[..., 0:1] - boxes_preds[..., 2:3] / 2
-            box1_y1 = boxes_preds[..., 1:2] - boxes_preds[..., 3:4] / 2
-            box1_x2 = boxes_preds[..., 0:1] + boxes_preds[..., 2:3] / 2
-            box1_y2 = boxes_preds[..., 1:2] + boxes_preds[..., 3:4] / 2
-            box2_x1 = boxes_labels[..., 0:1] - boxes_labels[..., 2:3] / 2
-            box2_y1 = boxes_labels[..., 1:2] - boxes_labels[..., 3:4] / 2
-            box2_x2 = boxes_labels[..., 0:1] + boxes_labels[..., 2:3] / 2
-            box2_y2 = boxes_labels[..., 1:2] + boxes_labels[..., 3:4] / 2
+          box1_x1 = boxes_preds[..., 0:1] - boxes_preds[..., 2:3] / 2
+          box1_y1 = boxes_preds[..., 1:2] - boxes_preds[..., 3:4] / 2
+          box1_x2 = boxes_preds[..., 0:1] + boxes_preds[..., 2:3] / 2
+          box1_y2 = boxes_preds[..., 1:2] + boxes_preds[..., 3:4] / 2
+          box2_x1 = boxes_labels[..., 0:1] - boxes_labels[..., 2:3] / 2
+          box2_y1 = boxes_labels[..., 1:2] - boxes_labels[..., 3:4] / 2
+          box2_x2 = boxes_labels[..., 0:1] + boxes_labels[..., 2:3] / 2
+          box2_y2 = boxes_labels[..., 1:2] + boxes_labels[..., 3:4] / 2
 
         if box_format == "corners":
-            box1_x1 = boxes_preds[..., 0:1]
-            box1_y1 = boxes_preds[..., 1:2]
-            box1_x2 = boxes_preds[..., 2:3]
-            box1_y2 = boxes_preds[..., 3:4]
-            box2_x1 = boxes_labels[..., 0:1]
-            box2_y1 = boxes_labels[..., 1:2]
-            box2_x2 = boxes_labels[..., 2:3]
-            box2_y2 = boxes_labels[..., 3:4]
+          box1_x1 = boxes_preds[..., 0:1]
+          box1_y1 = boxes_preds[..., 1:2]
+          box1_x2 = boxes_preds[..., 2:3]
+          box1_y2 = boxes_preds[..., 3:4]
+          box2_x1 = boxes_labels[..., 0:1]
+          box2_y1 = boxes_labels[..., 1:2]
+          box2_x2 = boxes_labels[..., 2:3]
+          box2_y2 = boxes_labels[..., 3:4]
 
         x1 = torch.max(box1_x1, box2_x1)
         y1 = torch.max(box1_y1, box2_y1)
@@ -317,7 +322,7 @@ class YOLOv3(pl.LightningModule):
         return intersection / (box1_area + box2_area - intersection + 1e-6)
 
 
-    def non_max_suppression(bboxes, iou_threshold, threshold, box_format="corners"):
+    def non_max_suppression(self,bboxes, iou_threshold, threshold, box_format="corners"):
         """
         Video explanation of this function:
         https://youtu.be/YDkjWEN8jNA
@@ -361,7 +366,7 @@ class YOLOv3(pl.LightningModule):
         return bboxes_after_nms
 
 
-    def mean_average_precision(
+    def mean_average_precision(self,
         pred_boxes, true_boxes, iou_threshold=0.5, box_format="midpoint", num_classes=20
     ):
         """
@@ -472,7 +477,7 @@ class YOLOv3(pl.LightningModule):
         return sum(average_precisions) / len(average_precisions)
 
 
-    def plot_image(image, boxes):
+    def plot_image(self,image, boxes):
         """Plots predicted bounding boxes on the image"""
         cmap = plt.get_cmap("tab20b")
         class_labels = config.COCO_LABELS if config.DATASET=='COCO' else config.PASCAL_CLASSES
@@ -517,7 +522,7 @@ class YOLOv3(pl.LightningModule):
         plt.show()
 
 
-    def get_evaluation_bboxes(
+    def get_evaluation_bboxes(self,
         loader,
         model,
         iou_threshold,
@@ -567,7 +572,7 @@ class YOLOv3(pl.LightningModule):
         return all_pred_boxes, all_true_boxes
 
 
-    def cells_to_bboxes(predictions, anchors, S, is_preds=True):
+    def cells_to_bboxes(self,predictions, anchors, S, is_preds=True):
         """
         Scales the predictions coming from the model to
         be relative to the entire image such that they for example later
@@ -605,13 +610,14 @@ class YOLOv3(pl.LightningModule):
         converted_bboxes = torch.cat((best_class, scores, x, y, w_h), dim=-1).reshape(BATCH_SIZE, num_anchors * S * S, 6)
         return converted_bboxes.tolist()
 
-    def check_class_accuracy(model, loader, threshold,logger):
+    def check_class_accuracy(self, loader, threshold,logger):
         tot_class_preds, correct_class = 0, 0
         tot_noobj, correct_noobj = 0, 0
         tot_obj, correct_obj = 0, 0
 
         for idx, (x, y) in enumerate(tqdm(loader)):
-            out = model(x)
+            x,y = x.to(self.device),y.to(self.device)
+            out = self(x)
 
             for i in range(3):
                 obj = y[i][..., 0] == 1 # in paper this is Iobj_i
@@ -637,7 +643,7 @@ class YOLOv3(pl.LightningModule):
         logger("Obj Accuracy",(correct_obj/(tot_obj+1e-16))*100,prog_bar=True, on_step=False, on_epoch=True)
 
 
-    def get_mean_std(loader):
+    def get_mean_std(self,loader):
         # var[X] = E[X**2] - E[X]**2
         channels_sum, channels_sqrd_sum, num_batches = 0, 0, 0
 
@@ -652,19 +658,19 @@ class YOLOv3(pl.LightningModule):
         return mean, std
 
 
-    def save_checkpoint(model, optimizer, filename="my_checkpoint.pth.tar"):
+    def save_checkpoint(self, optimizer, filename="my_checkpoint.pth.tar"):
         print("=> Saving checkpoint")
         checkpoint = {
-            "state_dict": model.state_dict(),
+            "state_dict": self.state_dict(),
             "optimizer": optimizer.state_dict(),
         }
         torch.save(checkpoint, filename)
 
 
-    def load_checkpoint(checkpoint_file, model, optimizer, lr):
+    def load_checkpoint(self,checkpoint_file, optimizer, lr):
         print("=> Loading checkpoint")
         checkpoint = torch.load(checkpoint_file, map_location=config.DEVICE)
-        model.load_state_dict(checkpoint["state_dict"])
+        self.load_state_dict(checkpoint["state_dict"])
         optimizer.load_state_dict(checkpoint["optimizer"])
 
         # If we don't do this then it will just have learning rate of old checkpoint
@@ -673,7 +679,7 @@ class YOLOv3(pl.LightningModule):
             param_group["lr"] = lr
 
 
-    def get_loaders(train_csv_path, test_csv_path):
+    def get_loaders(self,train_csv_path, test_csv_path):
         from dataset_org import YOLODataset
 
         IMAGE_SIZE = config.IMAGE_SIZE
@@ -729,9 +735,9 @@ class YOLOv3(pl.LightningModule):
 
         return train_loader, test_loader, train_eval_loader
 
-    def plot_couple_examples(model, loader, thresh, iou_thresh, anchors):
+    def plot_couple_examples(self, loader, thresh, iou_thresh, anchors):
         x, y = next(iter(loader))
-        out = model(x)
+        out = self(x)
         bboxes = [[] for _ in range(x.shape[0])]
         for i in range(3):
             batch_size, A, S, _, _ = out[i].shape
@@ -751,7 +757,7 @@ class YOLOv3(pl.LightningModule):
 
 
 
-    def seed_everything(seed=42):
+    def seed_everything(self,seed=42):
         os.environ['PYTHONHASHSEED'] = str(seed)
         random.seed(seed)
         np.random.seed(seed)
@@ -762,13 +768,13 @@ class YOLOv3(pl.LightningModule):
         torch.backends.cudnn.benchmark = False
 
 
-    def clip_coords(boxes, img_shape):
+    def clip_coords(self,boxes, img_shape):
         # Clip bounding xyxy bounding boxes to image shape (height, width)
         boxes[:, 0].clamp_(0, img_shape[1])  # x1
         boxes[:, 1].clamp_(0, img_shape[0])  # y1
         boxes[:, 2].clamp_(0, img_shape[1])  # x2
   
-    def xywhn2xyxy(x, w=640, h=640, padw=0, padh=0):
+    def xywhn2xyxy(self,x, w=640, h=640, padw=0, padh=0):
         # Convert nx4 boxes from [x, y, w, h] normalized to [x1, y1, x2, y2] where xy1=top-left, xy2=bottom-right
         y = x.clone() if isinstance(x, torch.Tensor) else np.copy(x)
         y[..., 0] = w * (x[..., 0] - x[..., 2] / 2) + padw  # top left x
@@ -778,14 +784,14 @@ class YOLOv3(pl.LightningModule):
         return y
 
 
-    def xyn2xy(x, w=640, h=640, padw=0, padh=0):
+    def xyn2xy(self,x, w=640, h=640, padw=0, padh=0):
         # Convert normalized segments into pixel segments, shape (n,2)
         y = x.clone() if isinstance(x, torch.Tensor) else np.copy(x)
         y[..., 0] = w * x[..., 0] + padw  # top left x
         y[..., 1] = h * x[..., 1] + padh  # top left y
         return y
 
-    def xyxy2xywhn(x, w=640, h=640, clip=False, eps=0.0):
+    def xyxy2xywhn(self,x, w=640, h=640, clip=False, eps=0.0):
         # Convert nx4 boxes from [x1, y1, x2, y2] to [x, y, w, h] normalized where xy1=top-left, xy2=bottom-right
         if clip:
             clip_boxes(x, (h - eps, w - eps))  # warning: inplace clip
@@ -796,7 +802,7 @@ class YOLOv3(pl.LightningModule):
         y[..., 3] = (x[..., 3] - x[..., 1]) / h  # height
         return y
 
-    def clip_boxes(boxes, shape):
+    def clip_boxes(self,boxes, shape):
         # Clip boxes (xyxy) to image shape (height, width)
         if isinstance(boxes, torch.Tensor):  # faster individually
             boxes[..., 0].clamp_(0, shape[1])  # x1
@@ -824,10 +830,11 @@ class YOLOv3(pl.LightningModule):
         # ==================== #
         #   FOR OBJECT LOSS    #
         # ==================== #
-
+        device = predictions.device
+        anchors = anchors.to(device)
         anchors = anchors.reshape(1, 3, 1, 1, 2)
         box_preds = torch.cat([self.sigmoid(predictions[..., 1:3]), torch.exp(predictions[..., 3:5]) * anchors], dim=-1)
-        ious = self.intersection_over_union(box_preds[obj], target[..., 1:5][obj]).detach()
+        ious = self.intersection_over_union(box_preds[obj], target[..., 1:5][obj])
         object_loss = self.mse(self.sigmoid(predictions[..., 0:1][obj]), ious * target[..., 0:1][obj])
 
         # ======================== #
