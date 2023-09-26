@@ -616,7 +616,10 @@ class YOLOv3(pl.LightningModule):
         tot_obj, correct_obj = 0, 0
 
         for idx, (x, y) in enumerate(tqdm(loader)):
-            x,y = x.to(self.device),y.to(self.device)
+            #x,y = x.to(self.device),y.to(self.device)
+            x = x.to(self.device)
+            #y = y.to(self.device)
+            y = [yi.to(self.device) for yi in y] 
             out = self(x)
 
             for i in range(3):
@@ -816,8 +819,13 @@ class YOLOv3(pl.LightningModule):
     
     def loss_fn(self, predictions, target, anchors):
         
+        
+        #print(predictions.device, target.device, anchors.device)
+        
         predictions = predictions.to(self.device)
         target = target.to(self.device)
+        
+        #print(predictions.device, target.device, anchors.device)
         # Check where obj and noobj (we ignore if target == -1)
         obj = target[..., 0] == 1  # in paper this is Iobj_i
         noobj = target[..., 0] == 0  # in paper this is Inoobj_i
@@ -833,9 +841,10 @@ class YOLOv3(pl.LightningModule):
         # ==================== #
         #   FOR OBJECT LOSS    #
         # ==================== #
-        device = predictions.device
-        anchors = anchors.to(device)
+        #device = predictions.device
+        #anchors = anchors.to(device)
         anchors = anchors.reshape(1, 3, 1, 1, 2)
+        anchors = anchors.to(self.device)
         box_preds = torch.cat([self.sigmoid(predictions[..., 1:3]), torch.exp(predictions[..., 3:5]) * anchors], dim=-1)
         ious = self.intersection_over_union(box_preds[obj], target[..., 1:5][obj])
         object_loss = self.mse(self.sigmoid(predictions[..., 0:1][obj]), ious * target[..., 0:1][obj])
